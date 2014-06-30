@@ -38,6 +38,7 @@ if version != (1, 0):
 
 # Read blocks
 blocks = unpack('>i')
+indent = 0
 for i in range(blocks):
     block_type = unpack('>H')
     if block_type not in [0xc001, 0xc002, 0x0001]:
@@ -46,8 +47,8 @@ for i in range(blocks):
     block_len = unpack('>i')
 
     if block_type == 0xc002:
-        print('[GROUP END]')
         ensure(block_len == 0, 'ERROR: Invalid block size')
+        indent -= 1
         continue
     else:
         ensure(block_len > 0, 'ERROR: Invalid block size')
@@ -65,36 +66,44 @@ for i in range(blocks):
     if block_type == 0xc001:
         # Group start
         print('[GROUP %s]' % name)
+        indent += 1
 
     elif block_type == 0x0001:
         # Color swatch
-        print('COLOR %s' % name)
-
         color_mode = unpack('4s')
         block_len -= 4
 
-        if color_mode == 'CMYK':
-            C, M, Y, K = unpack('4f')
-            block_len -= 16
+        processing = {
+            'CMYK': '>4f',
+            'RGB ': '>3f',
+            'LAB ': '>3f',
+            'Gray': '>f',
+        }
 
-        elif color_mode == 'RGB ':
-            R, G, B = unpack('3f')
-            block_len -= 12
+        ensure(color_mode in processing, 'ERROR: Unrecognized color mode %s' % color_mode)
 
-        elif color_mode == 'LAB ':
-            R, G, B = unpack('3f')
-            block_len -= 12
+        fmt = processing[color_mode]
+        colors = unpack(fmt)
 
-        elif color_mode == 'Gray':
-            B = unpack('f')
-            block_len -= 4
-
-        else:
-            ensure(False, 'ERROR: Invalid color mode')
-
+        block_len -= struct.calcsize(fmt)
         ensure(block_len > 0, 'ERROR: Invalid block size')
 
         color_type = unpack('>h')
         block_len -= 2
+
+        color_types = {
+            0: 'GLOBAL',
+            1: 'SPOT',
+            2: 'NORMAL',
+        }
+        ensure(color_type in color_types, 'ERROR: Unknown color type %d' % color_type)
+
+        print('%sCOLOR %s %s (%s) %s' % (
+            indent * '\t',
+            name,
+            color_mode.strip(),
+            ', '.join([str(k) for k in colors]),
+            color_types[color_type]
+        ))
 
     ensure(block_len == 0, 'ERROR: Block size mismatch')
