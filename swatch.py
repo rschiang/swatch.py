@@ -41,26 +41,42 @@ for i in range(blocks):
     ensure(block_len > 0, 'ERROR: Invalid block size')
 
     name_len = struct.unpack_from('>H', f)
-    ensure(name_len > 0, 'ERROR: Invalid name string')
+    ensure(0 < name_len < block_len, 'ERROR: Invalid name string length')
 
     name = u''
     for j in range(name_len):
         val = struct.unpack_from('>H', f)
         name += unichr(val)
+    block_len -= name_len
 
     color_mode = struct.unpack_from('4s', f)
+    block_len -= 4
+
     if color_mode == 'CMYK':
         C, M, Y, K = struct.unpack_from('4f', f)
+        block_len -= 16
+
     elif color_mode == 'RGB ':
         R, G, B = struct.unpack_from('3f', f)
+        block_len -= 12
+
     elif color_mode == 'LAB ':
         R, G, B = struct.unpack_from('3f', f)
+        block_len -= 12
+
     elif color_mode == 'Gray':
         B = struct.unpack_from('f', f)
+        block_len -= 4
+
     else:
         ensure(False, 'ERROR: Invalid color mode')
 
+    ensure(block_len > 0, 'ERROR: Invalid block size')
+
     color_type = struct.unpack_from('>h', f)
+    block_len -= 2
+
+    ensure(block_len == 0, 'ERROR: Block size mismatch')
 
     if block_type == 0xc002:
         print('[GROUP END]')
