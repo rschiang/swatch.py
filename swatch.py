@@ -44,7 +44,13 @@ for i in range(blocks):
         print('WARNING: Unknown block type %d' % block_type)
 
     block_len = unpack('>i')
-    ensure(block_len > 0, 'ERROR: Invalid block size')
+
+    if block_type == 0xc002:
+        print('[GROUP END]')
+        ensure(block_len == 0, 'ERROR: Invalid block size')
+        continue
+    else:
+        ensure(block_len > 0, 'ERROR: Invalid block size')
 
     name_len = unpack('>H')
     ensure(0 < name_len < block_len, 'ERROR: Invalid name string length')
@@ -90,8 +96,5 @@ for i in range(blocks):
 
         color_type = unpack('>h')
         block_len -= 2
-
-    elif block_type == 0xc002:
-        print('[GROUP END]')
 
     ensure(block_len == 0, 'ERROR: Block size mismatch')
