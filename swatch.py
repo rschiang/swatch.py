@@ -2,10 +2,14 @@
 import struct
 from sys import argv, exit
 
-def ensure(condition, message, exitCode=0):
+def ensure(condition, message, exitCode=-1):
     if not condition:
-        print(message)
+        print(message if exitCode != -1 else 'ERROR: %s' % message)
         exit(exitCode)
+
+def warn_if(condition, message, args=None):
+    if condition:
+        print('WARNING: %s' % (message if args is None else message % args))
 
 # Check argument existence
 ensure(len(argv) > 1,
@@ -15,12 +19,12 @@ ensure(len(argv) > 1,
     Usage: swatch.py <in_file>
 
     https://github.com/rschiang/swatch-tool
-''')
+''', 0)
 
 f = open(argv[1], 'r')
 
 # Check ASE signature
-ensure(f.read(4) == 'ASEF', 'ERROR: Signature mismatch')
+ensure(f.read(4) == 'ASEF', 'Signature mismatch')
 
 buf = f.read()
 f.close()
@@ -33,28 +37,26 @@ def unpack(fmt):
 
 # Check file version
 version = unpack('>hh')
-if version != (1, 0):
-    print('WARNING: File version mismatch (%d.%d)' % version)
+warn_if(version != (1, 0), 'File version mismatch (%d.%d)', version)
 
 # Read blocks
 blocks = unpack('>i')
 indent = 0
 for i in range(blocks):
     block_type = unpack('>H')
-    if block_type not in [0xc001, 0xc002, 0x0001]:
-        print('WARNING: Unknown block type %d' % block_type)
+    warn_if(block_type not in [0xc001, 0xc002, 0x0001], 'Unknown block type %d', block_type)
 
     block_len = unpack('>i')
 
     if block_type == 0xc002:
-        ensure(block_len == 0, 'ERROR: Invalid block size')
+        ensure(block_len == 0, 'Invalid block size')
         indent -= 1
         continue
     else:
-        ensure(block_len > 0, 'ERROR: Invalid block size')
+        ensure(block_len > 0, 'Invalid block size')
 
     name_len = unpack('>H')
-    ensure(0 < name_len < block_len, 'ERROR: Invalid name string length')
+    ensure(0 < name_len < block_len, 'Invalid name string length')
     block_len -= 2
 
     name = u''
@@ -80,13 +82,13 @@ for i in range(blocks):
             'Gray': '>f',
         }
 
-        ensure(color_mode in processing, 'ERROR: Unrecognized color mode %s' % color_mode)
+        ensure(color_mode in processing, 'Unrecognized color mode %s' % color_mode)
 
         fmt = processing[color_mode]
         colors = unpack(fmt)
 
         block_len -= struct.calcsize(fmt)
-        ensure(block_len > 0, 'ERROR: Invalid block size')
+        ensure(block_len > 0, 'Invalid block size')
 
         color_type = unpack('>h')
         block_len -= 2
@@ -96,7 +98,7 @@ for i in range(blocks):
             1: 'SPOT',
             2: 'NORMAL',
         }
-        ensure(color_type in color_types, 'ERROR: Unknown color type %d' % color_type)
+        ensure(color_type in color_types, 'Unknown color type %d' % color_type)
 
         print('%sCOLOR %s %s (%s) %s' % (
             indent * '\t',
@@ -106,4 +108,4 @@ for i in range(blocks):
             color_types[color_type]
         ))
 
-    ensure(block_len == 0, 'ERROR: Block size mismatch')
+    ensure(block_len == 0, 'Block size mismatch')
