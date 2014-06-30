@@ -1,6 +1,6 @@
 # Swatch.py
 
-Tools for use with swatch files. This script enables you to read from proprietary Adobe Swatch Exchange (ASE) files.
+This script enables you to read from proprietary Adobe Swatch Exchange (ASE) files.
 
 Feel free to fork and make use of this project. PR welcomed.
 

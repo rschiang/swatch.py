@@ -18,7 +18,7 @@ ensure(len(argv) > 1,
 
     Usage: swatch.py <in_file>
 
-    https://github.com/rschiang/swatch-tool
+    https://github.com/rschiang/swatch.py
 ''', 0)
 
 f = open(argv[1], 'r')
