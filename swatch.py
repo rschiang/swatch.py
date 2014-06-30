@@ -39,11 +39,8 @@ if version != (1, 0):
 # Read blocks
 blocks = unpack('>i')
 for i in range(blocks):
-    block_type = unpack('>h')
-
-    if block_type == 0xc001:
-        print('[GROUP START]')
-    elif block_type != 0x0001:
+    block_type = unpack('>H')
+    if block_type not in [0xc001, 0xc002, 0x0001]:
         print('WARNING: Unknown block type %d' % block_type)
 
     block_len = unpack('>i')
@@ -51,41 +48,50 @@ for i in range(blocks):
 
     name_len = unpack('>H')
     ensure(0 < name_len < block_len, 'ERROR: Invalid name string length')
+    block_len -= 2
 
     name = u''
     for j in range(name_len):
         val = unpack('>H')
         name += unichr(val)
-    block_len -= name_len
+    block_len -= 2 * name_len
 
-    color_mode = unpack('4s')
-    block_len -= 4
+    if block_type == 0xc001:
+        # Group start
+        print('[GROUP %s]' % name)
 
-    if color_mode == 'CMYK':
-        C, M, Y, K = unpack('4f')
-        block_len -= 16
+    elif block_type == 0x0001:
+        # Color swatch
+        print('COLOR %s' % name)
 
-    elif color_mode == 'RGB ':
-        R, G, B = unpack('3f')
-        block_len -= 12
-
-    elif color_mode == 'LAB ':
-        R, G, B = unpack('3f')
-        block_len -= 12
-
-    elif color_mode == 'Gray':
-        B = unpack('f')
+        color_mode = unpack('4s')
         block_len -= 4
 
-    else:
-        ensure(False, 'ERROR: Invalid color mode')
+        if color_mode == 'CMYK':
+            C, M, Y, K = unpack('4f')
+            block_len -= 16
 
-    ensure(block_len > 0, 'ERROR: Invalid block size')
+        elif color_mode == 'RGB ':
+            R, G, B = unpack('3f')
+            block_len -= 12
 
-    color_type = unpack('>h')
-    block_len -= 2
+        elif color_mode == 'LAB ':
+            R, G, B = unpack('3f')
+            block_len -= 12
+
+        elif color_mode == 'Gray':
+            B = unpack('f')
+            block_len -= 4
+
+        else:
+            ensure(False, 'ERROR: Invalid color mode')
+
+        ensure(block_len > 0, 'ERROR: Invalid block size')
+
+        color_type = unpack('>h')
+        block_len -= 2
+
+    elif block_type == 0xc002:
+        print('[GROUP END]')
 
     ensure(block_len == 0, 'ERROR: Block size mismatch')
-
-    if block_type == 0xc002:
-        print('[GROUP END]')
