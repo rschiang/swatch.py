@@ -104,7 +104,7 @@ for i in range(blocks):
             indent * '\t',
             name,
             color_mode.strip(),
-            ', '.join([str(k) for k in colors]),
+            ', '.join([str(int(k * 255)) for k in colors]),
             color_types[color_type]
         ))
 
